@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-
 import 'package:flutter_onnxruntime/flutter_onnxruntime.dart';
+import 'dart:typed_data';
+import 'dart:convert';
+import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img; // Using image package for image processing
+import 'dart:math' as math;
 
 void main() {
   runApp(const MyApp());
@@ -33,6 +37,8 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
   bool _isProcessing = false;
   OrtSession? _session;
   final assetPath = 'assets/models/resnet18-v1-7.onnx';
+  final classNamesPath = 'assets/models/imagenet-simple-labels.json';
+  final imagePath = 'assets/images/cat.jpg';
   List<Map<String, dynamic>> _displayResults = [];
 
   Future<void> _getModelInfo() async {
@@ -45,7 +51,7 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
 
     // generate a list of maps from the modelMetadataMap if the values is not empty
     final displayList = [
-      {'title': 'Model Name', 'value': 'ResNet18'},
+      {'title': 'Model Name', 'value': assetPath.split('/').last},
     ];
     // loop through the list of input and output info and add them to the displayList
     // Add index to the input and output prefix
@@ -79,26 +85,124 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
       _isProcessing = true;
     });
 
-    // Simulate processing time
-    await Future.delayed(const Duration(seconds: 1));
-
     _session ??= await OnnxRuntime().createSessionFromAsset(assetPath);
 
-    // Sample prediction results - this would come from the actual model inference
+    // read image data and run inference
+    _session ??= await OnnxRuntime().createSessionFromAsset(assetPath);
+
+    // Load and decode the image
+    final ByteData imageData = await rootBundle.load(imagePath);
+    final img.Image? image = img.decodeImage(imageData.buffer.asUint8List());
+
+    if (image == null) {
+      throw Exception('Failed to decode image');
+    }
+
+    // Preprocess image for ResNet model (resize to 224x224 and normalize)
+    final img.Image resizedImage = img.copyResize(image, width: 224, height: 224);
+
+    // Convert to RGB float tensor [1, 3, 224, 224] with values normalized between 0-1
+    // ResNet models typically expect RGB format with normalization using ImageNet stats
+    final Float32List inputData = Float32List(1 * 3 * 224 * 224);
+
+    int pixelIndex = 0;
+    for (int c = 0; c < 3; c++) {
+      // RGB channels
+      for (int y = 0; y < 224; y++) {
+        for (int x = 0; x < 224; x++) {
+          // Get R, G, B values (0-255)
+          double value;
+          if (c == 0) {
+            value = resizedImage.getPixel(x, y).r.toDouble(); // R
+          } else if (c == 1) {
+            value = resizedImage.getPixel(x, y).g.toDouble(); // G
+          } else {
+            value = resizedImage.getPixel(x, y).b.toDouble(); // B
+          }
+
+          // Normalize to 0-1 range
+          value = value / 255.0;
+
+          // Apply ImageNet normalization
+          final means = [0.485, 0.456, 0.406];
+          final stds = [0.229, 0.224, 0.225];
+          value = (value - means[c]) / stds[c];
+
+          inputData[pixelIndex++] = value;
+        }
+      }
+    }
+
+    // Create OrtValue from preprocessed image
+    final inputTensor = await OrtValue.fromFloat32List(
+      inputData,
+      [1, 3, 224, 224], // Input shape: batch, channels, height, width
+    );
+
+    // Load class names
+    final String classNamesJson = await rootBundle.loadString(classNamesPath);
+    final List<dynamic> classNames = jsonDecode(classNamesJson);
+
+    // Run inference
+    final startTime = DateTime.now();
+    final outputs = await _session!.run({
+      'data': inputTensor, // 'data' is the input name for ResNet18
+    });
+    final endTime = DateTime.now();
+
+    // Get the results
+    final List<double> scores = (outputs['outputs']['resnetv15_dense0_fwd'] as List<dynamic>).cast<double>();
+
+    // Output from classification models are logits so we have to apply softmax to convert logits to probabilities
+    final List<double> probabilities = _applySoftmax(scores);
+
+    // Find top prediction
+    int maxIndex = 0;
+    double maxProbability = probabilities[0];
+
+    for (int i = 1; i < probabilities.length; i++) {
+      if (probabilities[i] > maxProbability) {
+        maxIndex = i;
+        maxProbability = probabilities[i];
+      }
+    }
+
+    // Calculate inference time
+    final inferenceTime = endTime.difference(startTime).inMilliseconds;
+
+    // Get the model file size
+    final asset = await rootBundle.load(assetPath);
+    final modelSizeInMB = (asset.lengthInBytes / (1024 * 1024)).toStringAsFixed(1);
+
+    // Clean up resources
+    await inputTensor.dispose();
+
+    // Update results
     setState(() {
       _displayResults = [
-        {'title': 'Model Name', 'value': 'ResNet18'},
-        {'title': 'Input Name', 'value': 'data'},
-        {'title': 'Input Shape', 'value': '[1, 3, 224, 224]'},
-        {'title': 'Output Name', 'value': 'resnetv17_dense0_fwd'},
-        {'title': 'Top Prediction', 'value': 'Persian cat (Class 285)'},
-        {'title': 'Confidence', 'value': '0.92'},
-        {'title': 'Inference Time', 'value': '230ms'},
-        {'title': 'Model Size', 'value': '44.7MB'},
+        {'title': 'Model Name', 'value': assetPath.split('/').last},
+        {'title': 'Model Size', 'value': '$modelSizeInMB MB'},
+        {'title': 'Top Prediction', 'value': '${classNames[maxIndex]} (id: $maxIndex)'},
+        {'title': 'Confidence', 'value': maxProbability.toStringAsFixed(4)},
+        {'title': 'Inference Time', 'value': '$inferenceTime ms'},
         {'title': 'Processing Device', 'value': 'CPU'},
       ];
       _isProcessing = false;
     });
+  }
+
+  List<double> _applySoftmax(List<double> logits) {
+    // Find the maximum value to avoid numerical instability
+    double maxLogit = logits.reduce((curr, next) => curr > next ? curr : next);
+
+    // Subtract max from each value for numerical stability
+    List<double> expValues = logits.map((logit) => math.exp(logit - maxLogit)).toList();
+
+    // Calculate sum of all exp values
+    double sumExp = expValues.reduce((sum, val) => sum + val);
+
+    // Normalize by dividing each by the sum
+    return expValues.map((expVal) => expVal / sumExp).toList();
   }
 
   @override
