@@ -134,7 +134,7 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
     }
 
     // Create OrtValue from preprocessed image
-    final inputTensor = await OrtValue.fromFloat32List(
+    OrtValue inputTensor = await OrtValue.fromList(
       inputData,
       [1, 3, 224, 224], // Input shape: batch, channels, height, width
     );
@@ -142,16 +142,20 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
     // Load class names
     final String classNamesJson = await rootBundle.loadString(classNamesPath);
     final List<dynamic> classNames = jsonDecode(classNamesJson);
+    // RestNet18 has only one input and one output so we just get the first one in the lists
+    final String inputName = _session!.inputNames.first;
+    final String outputName = _session!.outputNames.first;
 
     // Run inference
     final startTime = DateTime.now();
     final outputs = await _session!.run({
-      'data': inputTensor, // 'data' is the input name for ResNet18
+      inputName: inputTensor, // 'data' is the input name for ResNet18
     });
     final endTime = DateTime.now();
 
     // Get the results
-    final List<double> scores = (outputs['outputs']['resnetv15_dense0_fwd'] as List<dynamic>).cast<double>();
+    // Resnet18 returns a float32 list, we cast it to a list of doubles since Dart doesn't support float32
+    final List<double> scores = (await outputs[outputName]!.asList() as List<dynamic>).cast<double>();
 
     // Output from classification models are logits so we have to apply softmax to convert logits to probabilities
     final List<double> probabilities = _applySoftmax(scores);
@@ -176,6 +180,9 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
 
     // Clean up resources
     await inputTensor.dispose();
+    for (var output in outputs.values) {
+      await output!.dispose();
+    }
 
     // Update results
     setState(() {

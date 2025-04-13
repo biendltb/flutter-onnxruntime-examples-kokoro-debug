@@ -24,3 +24,6 @@ target_link_libraries(${BINARY_NAME} PRIVATE flutter)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
+
+# Add include path for plugin headers
+target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_BINARY_DIR}/plugins/flutter_onnxruntime/include")
