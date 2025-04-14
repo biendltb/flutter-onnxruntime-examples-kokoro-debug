@@ -40,9 +40,23 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
   final classNamesPath = 'assets/models/imagenet-simple-labels.json';
   final imagePath = 'assets/images/cat.jpg';
   List<Map<String, dynamic>> _displayResults = [];
+  List<String> _availableProviders = [];
+  String? _selectedProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _getModelInfo();
+  }
 
   Future<void> _getModelInfo() async {
     _session ??= await OnnxRuntime().createSessionFromAsset(assetPath);
+
+    // optional: get and set the execution provider
+    _availableProviders = await OnnxRuntime().getAvailableProviders();
+    setState(() {
+      _selectedProvider = _availableProviders.isNotEmpty ? _availableProviders[0] : null;
+    });
 
     final modelMetadata = await _session!.getMetadata();
     final modelMetadataMap = modelMetadata.toMap();
@@ -85,7 +99,9 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
       _isProcessing = true;
     });
 
-    _session ??= await OnnxRuntime().createSessionFromAsset(assetPath);
+    final sessionOptions = OrtSessionOptions(providers: [_selectedProvider ?? 'CPU']);
+
+    _session ??= await OnnxRuntime().createSessionFromAsset(assetPath, options: sessionOptions);
 
     // read image data and run inference
     _session ??= await OnnxRuntime().createSessionFromAsset(assetPath);
@@ -192,7 +208,7 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
         {'title': 'Top Prediction', 'value': '${classNames[maxIndex]} (id: $maxIndex)'},
         {'title': 'Confidence', 'value': maxProbability.toStringAsFixed(4)},
         {'title': 'Inference Time', 'value': '$inferenceTime ms'},
-        {'title': 'Processing Device', 'value': 'CPU'},
+        {'title': 'Processing Device', 'value': _selectedProvider ?? 'CPU'},
       ];
       _isProcessing = false;
     });
@@ -225,8 +241,30 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
               padding: const EdgeInsets.symmetric(vertical: 20.0),
               child: Image.asset('assets/images/cat.jpg', height: 200, fit: BoxFit.contain),
             ),
-
-            // Predict button
+            // Dropdown for selecting execution provider
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  const Text('Provider:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 20),
+                  DropdownButton<String>(
+                    value: _selectedProvider,
+                    hint: const Text('Select Execution Provider'),
+                    items:
+                        _availableProviders.map((provider) {
+                          return DropdownMenuItem<String>(value: provider, child: Text(provider));
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedProvider = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            // Get Model Info and Predict buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
