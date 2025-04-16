@@ -41,5 +41,10 @@ jobs:
       run: flutter analyze
 
     - name: Run Unit Tests
-      run: flutter test
+      run: |
+        if [ "$(ls -A test)" ]; then
+          flutter test
+        else
+          echo "No tests found in the test directory."
+        fi
 
