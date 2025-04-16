@@ -9,8 +9,10 @@ Examples for [ONNX Runtime Flutter](https://github.com/masicai/flutter_onnxrunti
 This example demonstrates how to use the ONNX Runtime Flutter plugin for image classification tasks. It includes loading a pre-trained model, preparing input data, and running inference.
 
 
-<img src="images/classification_metadata.png" width="300" alt="Image classification model metadata"/>
-<img src="images/classification_inference.png" width="300" alt="Image classification inference results"/>
+<div style="display: flex; justify-content: space-between;">
+    <img src="images/classification_metadata.png" width="300" alt="Image classification model metadata"/>
+    <img src="images/classification_inference.png" width="300" alt="Image classification inference results"/>
+</div>
 
 To run this example, follow these steps:
 
