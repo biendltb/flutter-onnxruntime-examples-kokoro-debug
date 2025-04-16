@@ -97,10 +97,11 @@ packages:
   flutter_onnxruntime:
     dependency: "direct main"
     description:
-      path: "../flutter_onnxruntime"
-      relative: true
-    source: path
-    version: "0.0.1"
+      name: flutter_onnxruntime
+      sha256: "0a115dd2e3573386fe94173db1d12680753a743890eb22fa778784c5fc8b4ed6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   flutter_test:
     dependency: "direct dev"
     description: flutter
