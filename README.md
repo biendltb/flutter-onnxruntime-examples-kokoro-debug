@@ -1,16 +1,22 @@
 # flutter_onnxruntime_examples
 
-A new Flutter project.
+Examples for [ONNX Runtime Flutter](https://github.com/masicai/flutter_onnxruntime)
 
-## Getting Started
+## Examples
 
-This project is a starting point for a Flutter application.
+### Image Classification Example
 
-A few resources to get you started if this is your first Flutter project:
+This example demonstrates how to use the ONNX Runtime Flutter plugin for image classification tasks. It includes loading a pre-trained model, preparing input data, and running inference.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+<img src="images/classification_metadata.png" width="300" alt="Image classification model metadata"/>
+<img src="images/classification_inference.png" width="300" alt="Image classification inference results"/>
+
+To run this example, follow these steps:
+
+* Download the Resnet18 model from ONNX Model Zoo: [Resnet18](https://github.com/onnx/models/blob/main/validated/vision/classification/resnet/model/resnet18-v1-7.onnx)
+* Place the model file in the `assets/models` directory.
+* Run the app:
+    ```bash
+    flutter run
+    ```
