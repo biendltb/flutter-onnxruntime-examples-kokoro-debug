@@ -171,7 +171,7 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
 
     // Get the results
     // Resnet18 returns a float32 list, we cast it to a list of doubles since Dart doesn't support float32
-    final List<double> scores = (await outputs[outputName]!.asList()).cast<double>();
+    final List<double> scores = (await outputs[outputName]!.asFlattenedList()).cast<double>();
 
     // Output from classification models are logits so we have to apply softmax to convert logits to probabilities
     final List<double> probabilities = _applySoftmax(scores);
