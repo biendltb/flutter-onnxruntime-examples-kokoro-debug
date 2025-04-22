@@ -40,7 +40,7 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
   final classNamesPath = 'assets/models/imagenet-simple-labels.json';
   final imagePath = 'assets/images/cat.jpg';
   List<Map<String, dynamic>> _displayResults = [];
-  List<String> _availableProviders = [];
+  List<OrtProvider> _availableProviders = [];
   String? _selectedProvider;
 
   @override
@@ -55,7 +55,7 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
     // optional: get and set the execution provider
     _availableProviders = await OnnxRuntime().getAvailableProviders();
     setState(() {
-      _selectedProvider = _availableProviders.isNotEmpty ? _availableProviders[0] : null;
+      _selectedProvider = _availableProviders.isNotEmpty ? _availableProviders[0].name : null;
     });
 
     final modelMetadata = await _session!.getMetadata();
@@ -99,7 +99,14 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
       _isProcessing = true;
     });
 
-    final sessionOptions = OrtSessionOptions(providers: [_selectedProvider ?? 'CPU']);
+    OrtProvider provider;
+    if (_selectedProvider == null) {
+      provider = OrtProvider.CPU;
+    } else {
+      provider = OrtProvider.values.firstWhere((p) => p.name == _selectedProvider);
+    }
+
+    final sessionOptions = OrtSessionOptions(providers: [provider]);
 
     _session ??= await OnnxRuntime().createSessionFromAsset(assetPath, options: sessionOptions);
 
@@ -253,7 +260,7 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
                     hint: const Text('Select Execution Provider'),
                     items:
                         _availableProviders.map((provider) {
-                          return DropdownMenuItem<String>(value: provider, child: Text(provider));
+                          return DropdownMenuItem<String>(value: provider.name, child: Text(provider.name));
                         }).toList(),
                     onChanged: (value) {
                       setState(() {
