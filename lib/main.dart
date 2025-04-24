@@ -42,11 +42,23 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
   List<Map<String, dynamic>> _displayResults = [];
   List<OrtProvider> _availableProviders = [];
   String? _selectedProvider;
+  // Cache for decoded image to avoid decoding it multiple times
+  img.Image? _cachedImage;
 
   @override
   void initState() {
     super.initState();
     _getModelInfo();
+    _loadAndCacheImage();
+  }
+
+  // Load and cache the image during initialization
+  Future<void> _loadAndCacheImage() async {
+    final ByteData imageData = await rootBundle.load(imagePath);
+    _cachedImage = img.decodeImage(imageData.buffer.asUint8List());
+    if (_cachedImage == null) {
+      throw Exception('Failed to decode image');
+    }
   }
 
   Future<void> _getModelInfo() async {
@@ -113,13 +125,13 @@ class _OnnxModelDemoPageState extends State<OnnxModelDemoPage> {
     // read image data and run inference
     _session ??= await OnnxRuntime().createSessionFromAsset(assetPath);
 
-    // Load and decode the image
-    final ByteData imageData = await rootBundle.load(imagePath);
-    final img.Image? image = img.decodeImage(imageData.buffer.asUint8List());
-
-    if (image == null) {
-      throw Exception('Failed to decode image');
+    // Use the cached image or load it if not available
+    if (_cachedImage == null) {
+      await _loadAndCacheImage();
     }
+
+    // Use the cached image for processing
+    final img.Image image = _cachedImage!;
 
     // Preprocess image for ResNet model (resize to 224x224 and normalize)
     final img.Image resizedImage = img.copyResize(image, width: 224, height: 224);
