@@ -12,6 +12,7 @@ This example demonstrates how to use the ONNX Runtime Flutter plugin for image c
 <div style="display: flex; justify-content: space-between;">
     <img src="images/classification_metadata.png" width="300" alt="Image classification model metadata"/>
     <img src="images/classification_inference.png" width="300" alt="Image classification inference results"/>
+    <img src="images/classification_inference_web.png" width="300" alt="Image classification inference results on web"/>
 </div>
 
 To run this example, follow these steps:
