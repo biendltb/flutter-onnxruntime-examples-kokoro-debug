@@ -1,6 +1,6 @@
 # flutter_onnxruntime_examples
 
-Examples for [ONNX Runtime Flutter](https://github.com/masicai/flutter_onnxruntime)
+Examples for [flutter_onnxruntime](https://github.com/masicai/flutter_onnxruntime) plugin.
 
 ## Examples
 
