@@ -21,5 +21,6 @@ To run this example, follow these steps:
 * Place the model file in the `assets/models` directory.
 * Run the app:
     ```bash
-    flutter run
+    flutter run -d <device_id>
     ```
+    `device-id` could be `chrome`, `ios`, `android`, `macos`, `linux`, `windows`, etc.
