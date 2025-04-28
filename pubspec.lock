@@ -98,10 +98,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_onnxruntime
-      sha256: "2bb9470600c7d51f27e8962bccd9afa59ca6aafb279f61102b703caeb2dbe1ce"
+      sha256: "04f4beadddf7cf39a5ea17f6ba7379bf677875ff0373c55d82d0456617513563"
       url: "https://pub.dev"
     source: hosted
-    version: "1.3.0"
+    version: "1.4.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
